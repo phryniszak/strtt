@@ -1,0 +1,5 @@
+# excluded paths
+nbproject/
+build/
+private/
+.vscode

@@ -1,9 +1,6 @@
-# https://stackoverflow.com/questions/172587/what-is-the-difference-between-g-and-gcc
 CXX      := -g++
-# https://stackoverflow.com/questions/1662909/undefined-reference-to-pthread-create-in-linux
 CXXFLAGS := -Wall -pthread
 
-#LDFLAGS  := -L/home/pawel/workspace_c/_openocd/src/jtag/drivers/.libs/ -locdjtagdrivers -lusb-1.0 -lpthread -lstdc++
 LDFLAGS  :=  -lusb-1.0
 
 ifdef OS	

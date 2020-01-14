@@ -3,8 +3,10 @@
 Segger RTT client using ST-link debugger.
 
 Options:
+
 -v debugLevel
 where debugLevel from -3 to 4 when -3 is equal to silent output
+
 -ram ramAmmount
 where ramAmmount is range where program is looking for RTT. 
 

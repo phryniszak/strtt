@@ -9,9 +9,9 @@
 
 #define RAM_START 0x20000000
 
-#define SEGGER_RTT_MODE_NO_BLOCK_SKIP (0)      // Skip. Do not block, output nothing. (Default)
-#define SEGGER_RTT_MODE_NO_BLOCK_TRIM (1)      // Trim: Do not block, output as much as fits.
-#define SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL (2) // Block: Wait until there is space in the buffer.
+#define SEGGER_RTT_MODE_NO_BLOCK_SKIP         (0)     // Skip. Do not block, output nothing. (Default)
+#define SEGGER_RTT_MODE_NO_BLOCK_TRIM         (1)     // Trim: Do not block, output as much as fits.
+#define SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL    (2)     // Block: Wait until there is space in the buffer.
 
 //
 // Description for a circular buffer (also called "ring buffer")
@@ -40,26 +40,51 @@ typedef struct __attribute__((__packed__))
     SEGGER_RTT_BUFFER buffDesc[]; // Up/Down buffers, transferring information up/down from target via debug probe to host
 } SEGGER_RTT_CB;
 
+//
+//
+//
 typedef struct
 {
     SEGGER_RTT_CB *pRttDescription;
     uint32_t offset;
 } SEGGER_RTT_INFO;
 
+//
+//
+//
 typedef std::function<void(const int, const std::vector<uint8_t> *)> CallbackFunction;
 
 class StLink
 {
 private:
+    // api handle
     struct hl_layout_api_s *_api;
+    // parameters
     struct hl_interface_param_s _param = {0};
+    // stlink handle
     void *_handle = nullptr;
+
+    // memory used to find RTT
+    // we may need it later to find details about buffers, that's why we keep it all the time
     std::vector<uint8_t> _memory;
+
+    // all information about rtt layout
+    // warning: it is valid after findRtt()
     SEGGER_RTT_INFO _rtt_info = {0};
+
+    // chanels names
     std::vector<std::string> _rtt_info_names;
+
+    // timestamp
     double _duration;
+
+    // callback signature
     CallbackFunction _callback;
+
+    // shadow write memory
     std::vector<uint8_t> _wrMemory;
+
+    // private functions
     void init();
     int readRttEx(uint32_t index);
     unsigned _GetAvailWriteSpace(SEGGER_RTT_BUFFER *pRing);

@@ -1,22 +1,27 @@
 CXX      := -g++
-CXXFLAGS := -Wall -pthread
+CXXFLAGS := -Wall -pthread -DSYSVIEW -std=c++17
 
-LDFLAGS  :=  -lusb-1.0
+LDFLAGS  := -lusb-1.0
 
 ifdef OS	
 LDFLAGS_STATIC := \
 	-Lc:\msys64\home\Pawel\openocd\src\jtag\drivers\.libs -locdjtagdrivers \
-	-Lc:\msys64\home\Pawel\openocd\src\helper\.libs -lhelper \
+	-Lc:\msys64\home\Pawel\sockpp\build\ -lsockpp \
 	-lws2_32
 else
-LDFLAGS_STATIC := -L/home/pawel/workspace_c/_openocd/src/jtag/drivers/.libs -locdjtagdrivers
+
+LDFLAGS_STATIC := \
+	-L/home/pawel/workspace/openocd/src/jtag/drivers/.libs/ -locdjtagdrivers \
+	-L/home/pawel/workspace/_sockpp/build/ -lsockpp
 endif
 
 BUILD    := ./build
 OBJ_DIR  := $(BUILD)/objects
 APP_DIR  := $(BUILD)/apps
 TARGET   := app.exe
-INCLUDE  := -Iinc/
+INCLUDE  := \
+	-Iinc/ \
+	-I/usr/local/include
 SRC      :=                      \
    $(wildcard src/*.cpp)         \
 

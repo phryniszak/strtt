@@ -21,3 +21,8 @@ A quick and dirty workaround seams to change in src/jtag/drivers/stlink_usb.c th
 21/10/2020 
 Added possibilities to connect from Segger SystemView using "IP Recorder" at port 19111.
 Windows binaries are not updated for now.
+
+# RTT in browser
+You can also try to use webbrowser version here:
+
+https://phryniszak.github.io/jstlink/sample_rtt/

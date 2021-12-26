@@ -1,0 +1,312 @@
+/***************************************************************************
+ *   Copyright (C) 2005 by Dominic Rath                                    *
+ *   Dominic.Rath@gmx.de                                                   *
+ *                                                                         *
+ *   Copyright (C) 2007-2010 Øyvind Harboe                                 *
+ *   oyvind.harboe@zylin.com                                               *
+ *                                                                         *
+ *   Copyright (C) 2008 by Spencer Oliver                                  *
+ *   spen@spen-soft.co.uk                                                  *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
+ ***************************************************************************/
+
+#include "log.h"
+#include "helper_time_support.h"
+#include "stlink_errors.h"
+
+// variables //////////////////////////////////////////////////////////////////
+int debug_level = LOG_LVL_INFO;
+static int64_t start;
+static int64_t last_time;
+static int64_t current_time;
+static FILE *log_output;
+
+static int count;
+
+static const char *const log_strings[6] = {
+    "User : ",
+    "Error: ",
+    "Warn : ", /* want a space after each colon, all same width, colons aligned */
+    "Info : ",
+    "Debug: ",
+    "Debug: "};
+
+// forward declaration ////////////////////////////////////////////////////////
+long parse_int(char *cp, int *i);
+
+// functions //////////////////////////////////////////////////////////////////
+
+void log_init(void)
+{
+    /* set defaults for daemon configuration,
+	 * if not set by cmdline or cfgfile */
+    char *debug_env = getenv("OPENOCD_DEBUG_LEVEL");
+    if (debug_env)
+    {
+        int value;
+        int retval = parse_int(debug_env, &value);
+        if (retval == ERROR_OK &&
+            debug_level >= LOG_LVL_SILENT &&
+            debug_level <= LOG_LVL_DEBUG_IO)
+            debug_level = value;
+    }
+
+    if (!log_output)
+        log_output = stderr;
+
+    start = last_time = timeval_ms();
+}
+
+// https://stackoverflow.com/questions/28667132/is-there-a-way-to-use-the-c-standard-library-to-convert-string-int-and-keep/
+long parse_int(char *cp, int *i)
+{
+    char *end;
+    *i = strtol(cp, &end, 10); // You want decimal
+    return (end - cp);
+}
+
+/* The log_puts() serves two somewhat different goals:
+ *
+ * - logging
+ * - feeding low-level info to the user in GDB or Telnet
+ *
+ * The latter dictates that strings without newline are not logged, lest there
+ * will be *MANY log lines when sending one char at the time(e.g.
+ * target_request.c).
+ *
+ */
+static void log_puts(enum log_levels level,
+                     const char *file,
+                     int line,
+                     const char *function,
+                     const char *string)
+{
+    char *f;
+
+    if (!log_output)
+    {
+        /* log_init() not called yet; print on stderr */
+        fputs(string, stderr);
+        fflush(stderr);
+        return;
+    }
+
+    if (level == LOG_LVL_OUTPUT)
+    {
+        /* do not prepend any headers, just print out what we were given and return */
+        fputs(string, log_output);
+        fflush(log_output);
+        return;
+    }
+
+    f = strrchr(file, '/');
+    if (f)
+        file = f + 1;
+
+    if (strlen(string) > 0)
+    {
+        if (debug_level >= LOG_LVL_DEBUG)
+        {
+            /* print with count and time information */
+            int64_t t = timeval_ms() - start;
+#ifdef _DEBUG_FREE_SPACE_
+            struct mallinfo info;
+            info = mallinfo();
+#endif
+            fprintf(log_output, "%s%d %" PRId64 " %s:%d %s()"
+#ifdef _DEBUG_FREE_SPACE_
+                                " %d"
+#endif
+                                ": %s",
+                    log_strings[level + 1], count, t, file, line, function,
+#ifdef _DEBUG_FREE_SPACE_
+                    info.fordblks,
+#endif
+                    string);
+        }
+        else
+        {
+            /* if we are using gdb through pipes then we do not want any output
+			 * to the pipe otherwise we get repeated strings */
+            fprintf(log_output, "%s%s",
+                    (level > LOG_LVL_USER) ? log_strings[level + 1] : "", string);
+        }
+    }
+    else
+    {
+        /* Empty strings are sent to log callbacks to keep e.g. gdbserver alive, here we do
+		 *nothing. */
+    }
+
+    fflush(log_output);
+
+    /* Never forward LOG_LVL_DEBUG, too verbose and they can be found in the log if need be */
+    // PH if (level <= LOG_LVL_INFO)
+    // PH    log_forward(file, line, function, string);
+}
+
+void log_printf(enum log_levels level,
+                const char *file,
+                unsigned line,
+                const char *function,
+                const char *format,
+                ...)
+{
+    char *string;
+    va_list ap;
+
+    count++;
+    if (level > debug_level)
+        return;
+
+    va_start(ap, format);
+
+    string = alloc_vprintf(format, ap);
+    if (string)
+    {
+        log_puts(level, file, line, function, string);
+        free(string);
+    }
+
+    va_end(ap);
+}
+
+void log_printf_lf(enum log_levels level,
+                   const char *file,
+                   unsigned line,
+                   const char *function,
+                   const char *format,
+                   ...)
+{
+    va_list ap;
+
+    va_start(ap, format);
+    log_vprintf_lf(level, file, line, function, format, ap);
+    va_end(ap);
+}
+
+void log_vprintf_lf(enum log_levels level, const char *file, unsigned line,
+                    const char *function, const char *format, va_list args)
+{
+    char *tmp;
+
+    count++;
+
+    if (level > debug_level)
+        return;
+
+    tmp = alloc_vprintf(format, args);
+
+    if (!tmp)
+        return;
+
+    /*
+	 * Note: alloc_vprintf() guarantees that the buffer is at least one
+	 * character longer.
+	 */
+    strcat(tmp, "\n");
+    log_puts(level, file, line, function, tmp);
+    free(tmp);
+}
+
+/* return allocated string w/printf() result */
+char *alloc_vprintf(const char *fmt, va_list ap)
+{
+    va_list ap_copy;
+    int len;
+    char *string;
+
+    /* determine the length of the buffer needed */
+    va_copy(ap_copy, ap);
+    len = vsnprintf(NULL, 0, fmt, ap_copy);
+    va_end(ap_copy);
+
+    /* allocate and make room for terminating zero. */
+    /* FIXME: The old version always allocated at least one byte extra and
+	 * other code depend on that. They should be probably be fixed, but for
+	 * now reserve the extra byte. */
+    string = malloc(len + 2);
+    if (!string)
+        return NULL;
+
+    /* do the real work */
+    vsnprintf(string, len + 1, fmt, ap);
+
+    return string;
+}
+
+/* Code must return to the server loop before 1000ms has returned or invoke
+ * this function.
+ *
+ * The GDB connection will time out if it spends >2000ms and you'll get nasty
+ * error messages from GDB:
+ *
+ * Ignoring packet error, continuing...
+ * Reply contains invalid hex digit 116
+ *
+ * While it is possible use "set remotetimeout" to more than the default 2000ms
+ * in GDB, OpenOCD guarantees that it sends keep-alive packages on the
+ * GDB protocol and it is a bug in OpenOCD not to either return to the server
+ * loop or invoke keep_alive() every 1000ms.
+ *
+ * This function will send a keep alive packet if >500ms has passed since last time
+ * it was invoked.
+ *
+ * Note that this function can be invoked often, so it needs to be relatively
+ * fast when invoked more often than every 500ms.
+ *
+ */
+
+#define KEEP_ALIVE_KICK_TIME_MS 500
+#define KEEP_ALIVE_TIMEOUT_MS 1000
+
+static void tcp_timeout_warning(int64_t delta_time)
+{
+    LOG_DEBUG("keep_alive() was not invoked in the "
+              "%d ms timelimit (%" PRId64 " ms). This may cause "
+              "trouble with TCP connections.",
+              KEEP_ALIVE_TIMEOUT_MS,
+              delta_time);
+}
+
+void keep_alive(void)
+{
+    current_time = timeval_ms();
+
+    int64_t delta_time = current_time - last_time;
+
+    if (delta_time > KEEP_ALIVE_TIMEOUT_MS)
+    {
+        last_time = current_time;
+
+        tcp_timeout_warning(delta_time);
+    }
+
+    if (delta_time > KEEP_ALIVE_KICK_TIME_MS)
+    {
+        last_time = current_time;
+
+        /* this will keep the GDB connection alive */
+        LOG_USER_N("%s", "");
+
+        /* DANGER!!!! do not add code to invoke e.g. target event processing,
+		 * jim timer processing, etc. it can cause infinite recursion +
+		 * jim event callbacks need to happen at a well defined time,
+		 * not anywhere keep_alive() is invoked.
+		 *
+		 * These functions should be invoked at a well defined spot in server.c
+		 */
+    }
+}

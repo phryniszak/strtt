@@ -19,7 +19,6 @@ extern "C"
 #define STLINK_V3E_NO_MSD_PID (0x3754)
 #define STLINK_VID (0x0483)
 
-
     /** */
     extern struct hl_layout_api_s stlink_usb_layout_api;
 

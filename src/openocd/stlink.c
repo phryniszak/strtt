@@ -51,7 +51,6 @@
 #include <netinet/tcp.h>
 #endif
 
-
 // CORTEX DEFINITIONS - BEGIN
 
 /* Debug Control Block */
@@ -987,6 +986,7 @@ static int stlink_tcp_send_cmd(void *handle, int send_size, int recv_size, bool 
 
 	while (remaining_bytes > 0)
 	{
+
 		if (timeval_ms() > timeout)
 		{
 			LOG_DEBUG("received size %d (expected %d)", recv_size - remaining_bytes, recv_size);
@@ -3656,6 +3656,18 @@ static int stlink_tcp_open(void *handle, struct hl_interface_param_s *param)
 		return ERROR_FAIL;
 	}
 
+	// PH
+#ifdef _WIN32
+	// Initialize Winsock
+	WSADATA wsaData;
+	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (iResult != 0)
+	{
+		LOG_ERROR("Error initializing socket (WSAStartup failed: %d)\n", iResult);
+		return ERROR_FAIL;
+	}
+#endif
+
 	h->tcp_backend_priv.send_buf = malloc(STLINK_TCP_SEND_BUFFER_SIZE);
 	h->tcp_backend_priv.recv_buf = malloc(STLINK_TCP_RECV_BUFFER_SIZE);
 
@@ -3675,6 +3687,10 @@ static int stlink_tcp_open(void *handle, struct hl_interface_param_s *param)
 	h->tcp_backend_priv.device_id = 0;
 	h->tcp_backend_priv.connect_id = 0;
 
+	// PH - to get Winsock information in Windows we should use WSAGetLastError
+	// int win_socket_Error;
+	// win_socket_Error = WSAGetLastError();
+
 	if (h->tcp_backend_priv.fd == -1)
 	{
 		LOG_ERROR("error creating the socket, errno: %s", strerror(errno));
@@ -3690,11 +3706,25 @@ static int stlink_tcp_open(void *handle, struct hl_interface_param_s *param)
 	LOG_DEBUG("socket : %x", h->tcp_backend_priv.fd);
 
 	int optval = 1;
+
+	// It is very important to understand the interactions between Nagle's algorithm and Delayed ACKs.
+	// The TCP_NODELAY socket option allows your network to bypass Nagle Delays by disabling Nagle's algorithm,
+	// and sending the data as soon as it's available. Enabling TCP_NODELAY forces a socket to send the data
+	// in its buffer, whatever the packet size. To disable Nagle's buffering algorithm, use the TCP_NODELAY
+	// socket option. To disable Delayed ACKs, use the TCP_QUICKACK socket option
 	if (setsockopt(h->tcp_backend_priv.fd, IPPROTO_TCP, TCP_NODELAY, (const void *)&optval, sizeof(int)) == -1)
 	{
 		LOG_ERROR("cannot set sock option 'TCP_NODELAY', errno: %s", strerror(errno));
 		return ERROR_FAIL;
 	}
+
+	// PH SO_REUSEADDR is useful for server sockets to bind to a recently unbound
+	// PH port. When a socket is closed, the end point changes its state to TIME_WAIT
+	// if (setsockopt(h->tcp_backend_priv.fd, SOL_SOCKET, SO_REUSEADDR, (const void *)&optval, sizeof(int)) == -1)
+	// {
+	// 	LOG_ERROR("cannot set sock option 'SO_REUSEADDR', errno: %s", strerror(errno));
+	// 	return ERROR_FAIL;
+	// }
 
 	optval = STLINK_TCP_RECV_BUFFER_SIZE;
 	if (setsockopt(h->tcp_backend_priv.fd, SOL_SOCKET, SO_RCVBUF, (const void *)&optval, sizeof(int)) == -1)
@@ -3715,6 +3745,13 @@ static int stlink_tcp_open(void *handle, struct hl_interface_param_s *param)
 		LOG_ERROR("cannot connect to stlink server, errno: %s", strerror(errno));
 		return ERROR_FAIL;
 	}
+
+	// PH Put the socket in non-blocking mode:
+	// if (fcntl(h->tcp_backend_priv.fd, F_SETFL, fcntl(h->tcp_backend_priv.fd, F_GETFL) | O_NONBLOCK) < 0)
+	// {
+	// 	LOG_ERROR("cannot set sock option 'O_NONBLOCK', errno: %s", strerror(errno));
+	// 	return ERROR_FAIL;
+	// }
 
 	h->tcp_backend_priv.connected = true;
 
@@ -4213,7 +4250,6 @@ struct hl_layout_api_s stlink_usb_layout_api = {
 
 static DECLARE_BITMAP(opened_ap, DP_APSEL_MAX + 1);
 static uint32_t last_csw_default[DP_APSEL_MAX + 1];
-
 
 static int stlink_usb_open_ap(void *handle, unsigned short apsel)
 {

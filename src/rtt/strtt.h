@@ -25,11 +25,13 @@
 #include "stlink.h"
 #include "stlink_errors.h"
 
-#define RAM_START 0x20000000
+#define RAM_START (0x20000000)
 
-#define SEGGER_RTT_MODE_NO_BLOCK_SKIP         (0)     // Skip. Do not block, output nothing. (Default)
-#define SEGGER_RTT_MODE_NO_BLOCK_TRIM         (1)     // Trim: Do not block, output as much as fits.
-#define SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL    (2)     // Block: Wait until there is space in the buffer.
+#define SEGGER_RTT_MODE_NO_BLOCK_SKIP (0)      // Skip. Do not block, output nothing. (Default)
+#define SEGGER_RTT_MODE_NO_BLOCK_TRIM (1)      // Trim: Do not block, output as much as fits.
+#define SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL (2) // Block: Wait until there is space in the buffer.
+
+#define STLINK_TCP_PORT (7184)
 
 //
 // Description for a circular buffer (also called "ring buffer")
@@ -97,7 +99,7 @@ private:
     // callback signature
     CallbackFunction _callback;
 
-    // shadow write memory
+    // write shadow memory
     std::vector<uint8_t> _wrMemory;
 
     // private functions
@@ -106,10 +108,10 @@ private:
     unsigned _GetAvailWriteSpace(SEGGER_RTT_BUFFER *pRing);
 
 public:
-    StRtt(/* args */);
+    StRtt();
     ~StRtt();
 
-    int open();
+    int open(bool use_tcp, uint16_t port_tcp = STLINK_TCP_PORT);
     int close();
 
     int findRtt(uint32_t ramKbytes, uint32_t ramStart = RAM_START);

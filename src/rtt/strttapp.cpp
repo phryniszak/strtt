@@ -90,10 +90,16 @@ int main(int argc, char **argv)
         showCycleTime = true;
     }
 
+    bool useTCP = false;
+    if (input.cmdOptionExists("-tcp"))
+    {
+        useTCP = true;
+    }
+
     StRtt *strtt = new StRtt();
 
     // open stLink
-    int res = strtt->open();
+    int res = strtt->open(useTCP);
     if (res != ERROR_OK)
     {
         LOG_ERROR("failed to open STLINK (%d)", res);
@@ -124,25 +130,26 @@ int main(int argc, char **argv)
     _sv = new SysView(port);
 #endif
 
-    strtt->addChannelHandler([&](const int index, const std::vector<uint8_t> *buffer) {
-        if (index == 0)
-        {
-            // TERMINAL, print to console
-            for (uint8_t ch : *buffer)
-            {
-                fputc(ch, stdout);
-            }
-            fflush(stdout);
-        }
+    strtt->addChannelHandler([&](const int index, const std::vector<uint8_t> *buffer)
+                             {
+                                 if (index == 0)
+                                 {
+                                     // TERMINAL, print to console
+                                     for (uint8_t ch : *buffer)
+                                     {
+                                         fputc(ch, stdout);
+                                     }
+                                     fflush(stdout);
+                                 }
 
 #ifdef SYSVIEW
-        else if (index == 1)
-        {
-            // LOG_OUTPUT("SysView size: %d ", (int)buffer->size());
-            _sv->saveFromSTM(buffer);
-        }
+                                 else if (index == 1)
+                                 {
+                                     // LOG_OUTPUT("SysView size: %d ", (int)buffer->size());
+                                     _sv->saveFromSTM(buffer);
+                                 }
 #endif
-    });
+                             });
 
     std::vector<uint8_t> str;
     double _duration;

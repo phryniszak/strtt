@@ -32,7 +32,7 @@
 #define START_TS auto __start_ts = std::chrono::high_resolution_clock::now()
 #define STOP_TS this->_duration = std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - __start_ts).count()
 
-StRtt::StRtt(/* args */)
+StRtt::StRtt()
 {
     this->init();
 }
@@ -44,6 +44,8 @@ StRtt::~StRtt()
 
 void StRtt::init()
 {
+    log_init();
+
     this->_param.device_desc = "ST-LINK";
     this->_param.transport = hl_transports::HL_TRANSPORT_SWD;
 
@@ -63,8 +65,10 @@ void StRtt::init()
     this->_param.connect_under_reset = false;
 }
 
-int StRtt::open()
+int StRtt::open(bool use_tcp = false, uint16_t port_tcp)
 {
+    this->_param.use_stlink_tcp = use_tcp;
+    this->_param.stlink_tcp_port = port_tcp;
     return stlink_usb_layout_api.open(&this->_param, &this->_handle);
 }
 
@@ -73,13 +77,13 @@ int StRtt::close()
     return stlink_usb_layout_api.close(this->_handle);
 }
 
-int StRtt::getIdCode(uint32_t *idCode)
+int StRtt::getIdCode(uint32_t *pIdCode)
 {
     START_TS;
 
     int ret;
 
-    ret = stlink_usb_layout_api.read_mem(this->_handle, 0xE0042000, 4, 1, (uint8_t *)idCode);
+    ret = stlink_usb_layout_api.idcode(this->_handle, pIdCode);
 
     STOP_TS;
 

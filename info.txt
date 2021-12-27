@@ -1,0 +1,35 @@
+sudo tcpdump -i lo port 61234 -w stlink.pcap
+
+sudo tcpdump -i lo
+Notes
+If you get tcpdump: lo: No such device exists, get the name by coping it from the output of
+sudo tcpdump -D
+For example, if the output is as below you need lo0 (which is reusult 9. here:
+
+1.en0 [Up, Running]
+2.p2p0 [Up, Running]
+3.awdl0 [Up, Running]
+4.llw0 [Up, Running]
+5.utun0 [Up, Running]
+6.utun1 [Up, Running]
+7.utun2 [Up, Running]
+8.utun3 [Up, Running]
+9.lo0 [Up, Running, Loopback]
+
+----------------------------------------------------------------------------
+
+https://stackoverflow.com/questions/28027937/cross-platform-sockets
+
+----------------------------------------------------------------------------
+Linux Wireshark No Interfaces Ubuntu / Linux
+If you are getting the error Wireshark no interfaces found on the ubuntu Debian machine, the first thing you need to do is read the installation guide properly. Then create a group, add a user into it, and log in again.
+
+The command lines are:
+
+$ sudo apt-get install wireshark
+$ sudo dpkg-reconfigure wireshark-common
+$ sudo usermod -a -G wireshark $USER
+$ sudo reboot
+
+
+data.data == 06:01:00:00

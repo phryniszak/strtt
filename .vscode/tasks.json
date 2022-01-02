@@ -1,0 +1,35 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "tar",
+            "type": "shell",
+            "command": "tar",
+            "args": [
+                "-cvzf",
+                "${workspaceFolderBasename}.tar.gz",
+                "-C",
+                "${workspaceFolder}",
+                "."
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "zip",
+            "type": "shell",
+            "command": "zip",
+            "args": [
+                "-r",
+                "~/${workspaceFolderBasename}.zip",
+                "${workspaceFolder}",
+                "-x",
+                "*/ipch/*",
+                "-x",
+                "*/build/*"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}

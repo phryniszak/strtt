@@ -3338,7 +3338,7 @@ static int stlink_speed(void *handle, int khz, bool query)
 	struct stlink_usb_handle_s *h = handle;
 
 	if (!handle)
-		return khz;
+		return ERROR_OK;
 
 	switch (h->st_mode)
 	{
@@ -3360,7 +3360,7 @@ static int stlink_speed(void *handle, int khz, bool query)
 		break;
 	}
 
-	return khz;
+	return ERROR_COMMAND_ARGUMENT_INVALID;
 }
 
 /** */

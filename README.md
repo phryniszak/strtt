@@ -11,6 +11,8 @@ Options:
 # Windows
 Folder windows_bin_64 includes windows 64 bit executable. If the program returns immediately try to run it with -v 4 option. Return value (-4) indicates missing stlink drivers available as STSW-LINK009 from st.com.
 
+**strtt_sysview_tcp.exe** is a version that let you connect SystemView using TCP.
+
 # Using with STM32CubeIDE
 
 Thanks to the **-tcp** option it is possible to communicate with target using RTT channel while debugging in STM32CubeIDE.
@@ -23,7 +25,7 @@ alt="RTT and STM32CubeIDE" width="480" height="360" border="10" /></a>
 Program is using a refactored driver from the openocd project.
 
 # RTT in browser
-You can also try to use web browser version from here:
+You can also try to use web browser version:
 
 https://phryniszak.github.io/jstlink/sample_rtt/
 

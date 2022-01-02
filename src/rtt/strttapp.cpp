@@ -109,8 +109,8 @@ int main(int argc, char **argv)
     }
 
     // get idCode
-    uint32_t idCode;
-    res = strtt->getIdCode(&idCode);
+    // uint32_t idCode;
+    // res = strtt->getIdCode(&idCode);
 
     // find rtt
     res = strtt->findRtt(_ramKB);

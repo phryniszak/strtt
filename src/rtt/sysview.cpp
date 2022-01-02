@@ -17,8 +17,6 @@
 
 #include <vector>
 
-#include <sockpp/version.h>
-
 #include "log.h"
 #include "sysview.h"
 

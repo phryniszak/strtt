@@ -32,16 +32,28 @@
 #define START_TS auto __start_ts = std::chrono::high_resolution_clock::now()
 #define STOP_TS this->_duration = std::chrono::duration<double, std::micro>(std::chrono::high_resolution_clock::now() - __start_ts).count()
 
+/**
+ * @brief Construct a new St Rtt:: St Rtt object
+ * 
+ */
 StRtt::StRtt()
 {
     this->init();
 }
 
+/**
+ * @brief Destroy the St Rtt:: St Rtt object
+ * 
+ */
 StRtt::~StRtt()
 {
     stlink_usb_layout_api.close(this->_handle);
 }
 
+/**
+ * @brief 
+ * 
+ */
 void StRtt::init()
 {
     log_init();
@@ -65,6 +77,13 @@ void StRtt::init()
     this->_param.connect_under_reset = false;
 }
 
+/**
+ * @brief 
+ * 
+ * @param use_tcp 
+ * @param port_tcp 
+ * @return int 
+ */
 int StRtt::open(bool use_tcp = false, uint16_t port_tcp)
 {
     this->_param.use_stlink_tcp = use_tcp;
@@ -72,11 +91,22 @@ int StRtt::open(bool use_tcp = false, uint16_t port_tcp)
     return stlink_usb_layout_api.open(&this->_param, &this->_handle);
 }
 
+/**
+ * @brief 
+ * 
+ * @return int 
+ */
 int StRtt::close()
 {
     return stlink_usb_layout_api.close(this->_handle);
 }
 
+/**
+ * @brief 
+ * 
+ * @param pIdCode 
+ * @return int 
+ */
 int StRtt::getIdCode(uint32_t *pIdCode)
 {
     START_TS;
@@ -90,6 +120,13 @@ int StRtt::getIdCode(uint32_t *pIdCode)
     return ret;
 }
 
+/**
+ * @brief 
+ * 
+ * @param ramKbytes 
+ * @param ramStart 
+ * @return int 
+ */
 int StRtt::findRtt(uint32_t ramKbytes, uint32_t ramStart)
 {
     START_TS;
@@ -113,7 +150,7 @@ int StRtt::findRtt(uint32_t ramKbytes, uint32_t ramStart)
         {
             LOG_DEBUG("RTT addr = 0x%x", RAM_START + offset);
 
-            // sizezof(acID[16] + MaxNumUpBuffers +  MaxNumDownBuffers)
+            // sizeof(acID[16] + MaxNumUpBuffers +  MaxNumDownBuffers)
             this->_rtt_info.pRttDescription = (SEGGER_RTT_CB *)&this->_memory[offset];
             this->_rtt_info.offset = offset;
             break;
@@ -145,9 +182,11 @@ int StRtt::findRtt(uint32_t ramKbytes, uint32_t ramStart)
     return ERROR_OK;
 }
 
-//
-//
-//
+/**
+ * @brief 
+ * 
+ * @return int 
+ */
 int StRtt::getRttDesc()
 {
     START_TS;
@@ -180,9 +219,14 @@ int StRtt::getRttDesc()
     return ERROR_OK;
 }
 
-//
-//
-//
+/**
+ * @brief 
+ * 
+ * @param index 
+ * @param sizeRead 
+ * @param sizeWrite 
+ * @return int 
+ */
 int StRtt::getRttBuffSize(uint32_t index, uint32_t *sizeRead, uint32_t *sizeWrite)
 {
     // TODO: sanity checks (pointers)
@@ -191,6 +235,11 @@ int StRtt::getRttBuffSize(uint32_t index, uint32_t *sizeRead, uint32_t *sizeWrit
     return ERROR_OK;
 }
 
+/**
+ * @brief 
+ * 
+ * @return int 
+ */
 int StRtt::readRtt()
 {
     START_TS;
@@ -234,6 +283,14 @@ int StRtt::readRtt()
     blocks.sort();
     start = blocks.front().first;
     size = blocks.back().first + blocks.back().second - start;
+
+    // heppens during target debuging, after stopping/starting
+    if (size > SANE_SIZE_MAX)
+    {
+        LOG_ERROR("Read rtt memory size is insane: %d", size);
+        STOP_TS;
+        return ERROR_OK;
+    }
 
     // 5. Read memory
     ret = stlink_usb_layout_api.read_mem(this->_handle, start + RAM_START, 1, size, &this->_memory[start]);
@@ -304,7 +361,7 @@ int StRtt::readRttFromBuff(int index, std::vector<uint8_t> *buffer)
         // now save information about amount we read
         uint32_t addrRdOff = (uint8_t *)&pRing->RdOff - this->_memory.data() + RAM_START;
 
-        // we read up to readed value of data - we can use it (WrOff)
+        // we read up to read value of data - we can use it (WrOff)
         // other way we should do some maths with wrap-around logic
         int ret = stlink_usb_layout_api.write_mem(this->_handle, addrRdOff, 4, 1, (uint8_t *)&WrOff);
         if (ret < 0)
@@ -316,18 +373,26 @@ int StRtt::readRttFromBuff(int index, std::vector<uint8_t> *buffer)
     return buffer->size();
 }
 
-// https://sudomakeinstall.io/posts/2017/11/30/callbacks-in-cpp11/
-// https://stackoverflow.com/questions/14189440/c-callback-using-class-member
-// https://en.cppreference.com/w/cpp/utility/functional/function
-// https://en.cppreference.com/w/cpp/utility/functional/function/deduction_guides
+/**
+ * @brief 
+ * 
+ * @param callback 
+ */
 void StRtt::addChannelHandler(CallbackFunction callback)
 {
     this->_callback = callback;
 }
 
-//
-// as buffer in uc can be smaller than what we want to write, we
-// in one go write up to uc buffer size
+/**
+ * @brief 
+ * 
+ * @param buffIndex 
+ * @param buffer 
+ * @return int 
+ * 
+ * as buffer in uc can be smaller than what we want to write in one go, we
+ * write up to uc buffer size
+ */
 int StRtt::writeRtt(int buffIndex, std::vector<uint8_t> *buffer)
 {
     START_TS;

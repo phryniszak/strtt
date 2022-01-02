@@ -7,6 +7,8 @@
 #include "log.h"
 #include "inputparser.h"
 
+#define SYSVIEW
+
 #ifdef SYSVIEW
 #include "sysview.h"
 #endif
@@ -145,7 +147,7 @@ int main(int argc, char **argv)
 #ifdef SYSVIEW
                                  else if (index == 1)
                                  {
-                                     // LOG_OUTPUT("SysView size: %d ", (int)buffer->size());
+                                     LOG_OUTPUT("SysView size: %d ", (int)buffer->size());
                                      _sv->saveFromSTM(buffer);
                                  }
 #endif
@@ -158,7 +160,13 @@ int main(int argc, char **argv)
         START_TS;
 
         // read rtt
-        strtt->readRtt();
+        res = strtt->readRtt();
+
+        if (res != ERROR_OK)
+        {
+            LOG_ERROR("readRtt returned error %d, program is exiting", res);
+            stopApp = true;
+        }
 
         // read console
         while (_kbhit())

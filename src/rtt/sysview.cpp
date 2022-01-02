@@ -39,9 +39,11 @@ static const char _abHelloMsg[SYSVIEW_COMM_TARGET_HELLO_SIZE] = {'S', 'E', 'G', 
                                                                  'V', '0' + SEGGER_SYSVIEW_MAJOR, '.', '0' + (SEGGER_SYSVIEW_MINOR / 10), '0' + (SEGGER_SYSVIEW_MINOR % 10), '.',
                                                                  '0' + (SEGGER_SYSVIEW_REV / 10), '0' + (SEGGER_SYSVIEW_REV % 10), '\0', 0, 0, 0, 0, 0};
 
-//
-//
-//
+/**
+ * @brief Construct a new Sys View:: Sys View object
+ * 
+ * @param port 
+ */
 SysView::SysView(int port)
 {
     this->_connected = false;
@@ -49,9 +51,13 @@ SysView::SysView(int port)
     this->_th = std::thread(&SysView::run_server, this);
 }
 
-//
-//
-//
+/**
+ * @brief 
+ * 
+ * @param buffer 
+ * @return true 
+ * @return false 
+ */
 bool SysView::saveFromSTM(const std::vector<uint8_t> *buffer)
 {
     if (this->_connected)
@@ -61,17 +67,21 @@ bool SysView::saveFromSTM(const std::vector<uint8_t> *buffer)
     return false;
 }
 
-//
-//
-//
+/**
+ * @brief 
+ * 
+ * @return size_t 
+ */
 size_t SysView::dataToSTM()
 {
     return this->_q_to_uc.size_approx();
 }
 
-//
-//
-//
+/**
+ * @brief 
+ * 
+ * @return std::vector<unsigned char> 
+ */
 std::vector<unsigned char> SysView::getDataToSTM()
 {
     size_t n = this->_q_to_uc.size_approx();
@@ -81,9 +91,10 @@ std::vector<unsigned char> SysView::getDataToSTM()
     return data;
 }
 
-//
-//
-//
+/**
+ * @brief 
+ * 
+ */
 void SysView::run_server()
 {
     sockpp::socket_initializer sockInit;
@@ -117,9 +128,11 @@ void SysView::run_server()
     }
 }
 
-//
-//
-//
+/**
+ * @brief 
+ * 
+ * @param sock 
+ */
 void SysView::run_socket(sockpp::tcp_socket sock)
 {
     sock.set_non_blocking();
@@ -138,7 +151,7 @@ void SysView::run_socket(sockpp::tcp_socket sock)
 
     LOG_USER("Received HELLO message");
 
-    // anwser to HELLO message
+    // answer to HELLO message
     n = sock.write_n(_abHelloMsg, sizeof(_abHelloMsg));
     if (n != SYSVIEW_COMM_TARGET_HELLO_SIZE)
     {

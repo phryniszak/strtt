@@ -3015,9 +3015,124 @@ static int stlink_usb_read_ap_mem(void *handle, uint8_t ap_num, uint32_t csw,
 	return retval;
 }
 
+/**
+ * @brief 
+ * 
+ * @param handle 
+ * @param ap_num 
+ * @param csw 
+ * @param addr 
+ * @param count 
+ * @param buffer 
+ * @return int 
+ */
+static int stlink_usb_read_ap_mem_ex(void *handle, uint8_t ap_num, uint32_t csw,
+									 uint32_t addr, uint32_t count, uint8_t *buffer)
+{
+	int retval = ERROR_OK;
+	uint32_t bytes_remaining;
+	int retries = 0;
+	struct stlink_usb_handle_s *h = handle;
+
+	while (count)
+	{
+		bytes_remaining = stlink_max_block_size(h->max_mem_packet, addr);
+
+		if (count < bytes_remaining)
+			bytes_remaining = count;
+
+		/*
+		 * all stlink support 8/32bit memory read/writes and only from
+		 * stlink V2J26 there is support for 16 bit memory read/write.
+		 * Honour 32 bit and, if possible, 16 bit too. Otherwise, handle
+		 * as 8bit access.
+		 */
+		/* When in jtag mode the stlink uses the auto-increment functionality.
+			 * However it expects us to pass the data correctly, this includes
+			 * alignment and any page boundaries. We already do this as part of the
+			 * adi_v5 implementation, but the stlink is a hla adapter and so this
+			 * needs implementing manually.
+			 * currently this only affects jtag mode, according to ST they do single
+			 * access in SWD mode - but this may change and so we do it for both modes */
+
+		/* if address not aligned to 32 bit */
+		if (addr & 0x3)
+		{
+			uint32_t head_bytes = 4 - (addr & 0x3);
+			retval = stlink_usb_read_mem8(handle, ap_num, csw, addr, head_bytes, buffer);
+			if (retval == ERROR_WAIT && retries < MAX_WAIT_RETRIES)
+			{
+				usleep((1 << retries++) * 1000);
+				continue;
+			}
+			if (retval != ERROR_OK)
+				return retval;
+			buffer += head_bytes;
+			addr += head_bytes;
+			count -= head_bytes;
+			bytes_remaining -= head_bytes;
+		}
+
+		uint32_t main_bytes = 0;
+
+		// if alignment 16 bit, but not 32 bit, read bytes_remaining as 16 bit, (if stlink has 16 bit)
+		if ((!(bytes_remaining & 0x1)) && (bytes_remaining & 0x3) && (h->version.flags & STLINK_F_HAS_MEM_16BIT))
+		{
+			// read as much as possible in 16 bit mode
+			main_bytes = (bytes_remaining / 2) * 2;
+			retval = stlink_usb_read_mem16(handle, ap_num, csw, addr, main_bytes, buffer);
+		}
+		else
+		{
+			// read as much as possible in 32 bit mode
+			main_bytes = (bytes_remaining / 4) * 4;
+			retval = stlink_usb_read_mem32(handle, ap_num, csw, addr, main_bytes, buffer);
+		}
+
+		if (retval == ERROR_WAIT && retries < MAX_WAIT_RETRIES)
+		{
+			usleep((1 << retries++) * 1000);
+			continue;
+		}
+		if (retval != ERROR_OK)
+			return retval;
+
+		buffer += main_bytes;
+		addr += main_bytes;
+		count -= main_bytes;
+		bytes_remaining -= main_bytes;
+
+		// read what left (tail)
+		if (bytes_remaining)
+		{
+			retval = stlink_usb_read_mem8(handle, ap_num, csw, addr, bytes_remaining, buffer);
+			if (retval == ERROR_WAIT && retries < MAX_WAIT_RETRIES)
+			{
+				usleep((1 << retries++) * 1000);
+				continue;
+			}
+			if (retval != ERROR_OK)
+				return retval;
+
+			buffer += bytes_remaining;
+			addr += bytes_remaining;
+			count -= bytes_remaining;
+		}
+	}
+
+	return retval;
+}
+
 static int stlink_usb_read_mem(void *handle, uint32_t addr, uint32_t size,
 							   uint32_t count, uint8_t *buffer)
 {
+	// automatic mode
+	if (size == (uint32_t)(-1))
+	{
+		return stlink_usb_read_ap_mem_ex(handle, STLINK_HLA_AP_NUM, STLINK_HLA_CSW,
+										 addr, count, buffer);
+	}
+
 	return stlink_usb_read_ap_mem(handle, STLINK_HLA_AP_NUM, STLINK_HLA_CSW,
 								  addr, size, count, buffer);
 }
@@ -3106,9 +3221,124 @@ static int stlink_usb_write_ap_mem(void *handle, uint8_t ap_num, uint32_t csw,
 	return retval;
 }
 
+/**
+ * @brief 
+ * 
+ * @param handle 
+ * @param ap_num 
+ * @param csw 
+ * @param addr 
+ * @param count 
+ * @param buffer 
+ * @return int 
+ */
+static int stlink_usb_write_ap_mem_ex(void *handle, uint8_t ap_num, uint32_t csw,
+									  uint32_t addr, uint32_t count, const uint8_t *buffer)
+{
+	int retval = ERROR_OK;
+	uint32_t bytes_remaining;
+	int retries = 0;
+	struct stlink_usb_handle_s *h = handle;
+
+	while (count)
+	{
+		bytes_remaining = stlink_max_block_size(h->max_mem_packet, addr);
+
+		if (count < bytes_remaining)
+			bytes_remaining = count;
+
+		/*
+		 * all stlink support 8/32bit memory read/writes and only from
+		 * stlink V2J26 there is support for 16 bit memory read/write.
+		 * Honour 32 bit and, if possible, 16 bit too. Otherwise, handle
+		 * as 8bit access.
+		 */
+		/* When in jtag mode the stlink uses the auto-increment functionality.
+			 * However it expects us to pass the data correctly, this includes
+			 * alignment and any page boundaries. We already do this as part of the
+			 * adi_v5 implementation, but the stlink is a hla adapter and so this
+			 * needs implementing manually.
+			 * currently this only affects jtag mode, according to ST they do single
+			 * access in SWD mode - but this may change and so we do it for both modes */
+
+		/* if address not aligned to 32 bit */
+		if (addr & 0x3)
+		{
+			uint32_t head_bytes = 4 - (addr & 0x3);
+			retval = stlink_usb_write_mem8(handle, ap_num, csw, addr, head_bytes, buffer);
+			if (retval == ERROR_WAIT && retries < MAX_WAIT_RETRIES)
+			{
+				usleep((1 << retries++) * 1000);
+				continue;
+			}
+			if (retval != ERROR_OK)
+				return retval;
+			buffer += head_bytes;
+			addr += head_bytes;
+			count -= head_bytes;
+			bytes_remaining -= head_bytes;
+		}
+
+		uint32_t main_bytes = 0;
+
+		// if alignment 16 bit, but not 32 bit, write bytes_remaining as 16 bit, (if stlink has 16 bit)
+		if ((!(bytes_remaining & 0x1)) && (bytes_remaining & 0x3) && (h->version.flags & STLINK_F_HAS_MEM_16BIT))
+		{
+			// write as much as possible in 16 bit mode
+			main_bytes = (bytes_remaining / 2) * 2;
+			retval = stlink_usb_write_mem16(handle, ap_num, csw, addr, main_bytes, buffer);
+		}
+		else
+		{
+			// write as much as possible in 32 bit mode
+			main_bytes = (bytes_remaining / 4) * 4;
+			retval = stlink_usb_write_mem32(handle, ap_num, csw, addr, main_bytes, buffer);
+		}
+
+		if (retval == ERROR_WAIT && retries < MAX_WAIT_RETRIES)
+		{
+			usleep((1 << retries++) * 1000);
+			continue;
+		}
+		if (retval != ERROR_OK)
+			return retval;
+
+		buffer += main_bytes;
+		addr += main_bytes;
+		count -= main_bytes;
+		bytes_remaining -= main_bytes;
+
+		// write what left (tail)
+		if (bytes_remaining)
+		{
+			retval = stlink_usb_write_mem8(handle, ap_num, csw, addr, bytes_remaining, buffer);
+			if (retval == ERROR_WAIT && retries < MAX_WAIT_RETRIES)
+			{
+				usleep((1 << retries++) * 1000);
+				continue;
+			}
+			if (retval != ERROR_OK)
+				return retval;
+
+			buffer += bytes_remaining;
+			addr += bytes_remaining;
+			count -= bytes_remaining;
+		}
+	}
+
+	return retval;
+}
+
 static int stlink_usb_write_mem(void *handle, uint32_t addr, uint32_t size,
 								uint32_t count, const uint8_t *buffer)
 {
+	// automatic mode
+	if (size == (uint32_t)(-1))
+	{
+		return stlink_usb_write_ap_mem_ex(handle, STLINK_HLA_AP_NUM, STLINK_HLA_CSW,
+										  addr, count, buffer);
+	}
+
 	return stlink_usb_write_ap_mem(handle, STLINK_HLA_AP_NUM, STLINK_HLA_CSW,
 								   addr, size, count, buffer);
 }

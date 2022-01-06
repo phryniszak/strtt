@@ -34,6 +34,8 @@
 
 #define STLINK_TCP_PORT (7184)
 
+#define STLINK_SPEED (24 * 1000)
+
 //
 // Description for a circular buffer (also called "ring buffer")
 // which is used as up-buffer (T->H)

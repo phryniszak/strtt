@@ -34,7 +34,7 @@
 
 /**
  * @brief Construct a new St Rtt:: St Rtt object
- * 
+ *
  */
 StRtt::StRtt()
 {
@@ -43,7 +43,7 @@ StRtt::StRtt()
 
 /**
  * @brief Destroy the St Rtt:: St Rtt object
- * 
+ *
  */
 StRtt::~StRtt()
 {
@@ -51,8 +51,8 @@ StRtt::~StRtt()
 }
 
 /**
- * @brief 
- * 
+ * @brief
+ *
  */
 void StRtt::init()
 {
@@ -64,25 +64,33 @@ void StRtt::init()
     std::vector<uint16_t> pids{STLINK_V2_PID, STLINK_V2_1_PID, STLINK_V2_1_NO_MSD_PID,
                                STLINK_V3_USBLOADER_PID, STLINK_V3E_PID, STLINK_V3S_PID, STLINK_V3_2VCP_PID, STLINK_V3E_NO_MSD_PID};
 
-    for (std::size_t i = 0; (i < pids.size()) && (i < HLA_MAX_USB_IDS); ++i)
+    for (std::size_t i = 0; i < HLA_MAX_USB_IDS; ++i)
     {
-        this->_param.vid[i] = STLINK_VID;
-        this->_param.pid[i] = pids[i];
+        if (i < pids.size())
+        {
+            this->_param.vid[i] = STLINK_VID;
+            this->_param.pid[i] = pids[i];
+        }
+        else
+        {
+            this->_param.vid[i] = 0;
+            this->_param.pid[i] = 0;
+        }
     }
 
     this->_param.use_stlink_tcp = false;
 
-    this->_param.initial_interface_speed = 24 * 1000;
+    this->_param.initial_interface_speed = STLINK_SPEED;
 
     this->_param.connect_under_reset = false;
 }
 
 /**
- * @brief 
- * 
- * @param use_tcp 
- * @param port_tcp 
- * @return int 
+ * @brief
+ *
+ * @param use_tcp
+ * @param port_tcp
+ * @return int
  */
 int StRtt::open(bool use_tcp = false, uint16_t port_tcp)
 {
@@ -92,9 +100,9 @@ int StRtt::open(bool use_tcp = false, uint16_t port_tcp)
 }
 
 /**
- * @brief 
- * 
- * @return int 
+ * @brief
+ *
+ * @return int
  */
 int StRtt::close()
 {
@@ -102,10 +110,10 @@ int StRtt::close()
 }
 
 /**
- * @brief 
- * 
- * @param pIdCode 
- * @return int 
+ * @brief
+ *
+ * @param pIdCode
+ * @return int
  */
 int StRtt::getIdCode(uint32_t *pIdCode)
 {
@@ -121,11 +129,11 @@ int StRtt::getIdCode(uint32_t *pIdCode)
 }
 
 /**
- * @brief 
- * 
- * @param ramKbytes 
- * @param ramStart 
- * @return int 
+ * @brief
+ *
+ * @param ramKbytes
+ * @param ramStart
+ * @return int
  */
 int StRtt::findRtt(uint32_t ramKbytes, uint32_t ramStart)
 {
@@ -133,7 +141,7 @@ int StRtt::findRtt(uint32_t ramKbytes, uint32_t ramStart)
 
     // read the whole RAM ---------------------------------------------------------------
     this->_memory.resize(ramKbytes * 1024);
-    int ret = stlink_usb_layout_api.read_mem(this->_handle, RAM_START, 4, ramKbytes * 0x100, this->_memory.data());
+    int ret = stlink_usb_layout_api.read_mem(this->_handle, RAM_START, -1, ramKbytes * 0x400, this->_memory.data());
     if (ret != ERROR_OK)
     {
         STOP_TS;
@@ -183,9 +191,9 @@ int StRtt::findRtt(uint32_t ramKbytes, uint32_t ramStart)
 }
 
 /**
- * @brief 
- * 
- * @return int 
+ * @brief
+ *
+ * @return int
  */
 int StRtt::getRttDesc()
 {
@@ -201,7 +209,7 @@ int StRtt::getRttDesc()
         if (this->_rtt_info.pRttDescription->buffDesc[i].sName)
         {
             // we have to read it from flash
-            stlink_usb_layout_api.read_mem(this->_handle, this->_rtt_info.pRttDescription->buffDesc[i].sName, 1, MAX_STR_LENGTH, (uint8_t *)strChannelName);
+            stlink_usb_layout_api.read_mem(this->_handle, this->_rtt_info.pRttDescription->buffDesc[i].sName, -1, MAX_STR_LENGTH, (uint8_t *)strChannelName);
             _rtt_info_names[i] = std::string(strChannelName);
             LOG_INFO("%d. Channel name: %s\tsize: %d\tmode: %d", (int)i, strChannelName,
                      this->_rtt_info.pRttDescription->buffDesc[i].SizeOfBuffer,
@@ -220,12 +228,12 @@ int StRtt::getRttDesc()
 }
 
 /**
- * @brief 
- * 
- * @param index 
- * @param sizeRead 
- * @param sizeWrite 
- * @return int 
+ * @brief
+ *
+ * @param index
+ * @param sizeRead
+ * @param sizeWrite
+ * @return int
  */
 int StRtt::getRttBuffSize(uint32_t index, uint32_t *sizeRead, uint32_t *sizeWrite)
 {
@@ -236,9 +244,9 @@ int StRtt::getRttBuffSize(uint32_t index, uint32_t *sizeRead, uint32_t *sizeWrit
 }
 
 /**
- * @brief 
- * 
- * @return int 
+ * @brief
+ *
+ * @return int
  */
 int StRtt::readRtt()
 {
@@ -248,7 +256,7 @@ int StRtt::readRtt()
     uint32_t start = this->_rtt_info.offset;
     unsigned int buffersCnt = this->_rtt_info.pRttDescription->MaxNumUpBuffers + this->_rtt_info.pRttDescription->MaxNumDownBuffers;
     uint32_t size = sizeof(SEGGER_RTT_CB) + sizeof(SEGGER_RTT_BUFFER) * buffersCnt;
-    int ret = stlink_usb_layout_api.read_mem(this->_handle, start + RAM_START, 1, size, &this->_memory[start]);
+    int ret = stlink_usb_layout_api.read_mem(this->_handle, start + RAM_START, -1, size, &this->_memory[start]);
     if (ret < 0)
     {
         STOP_TS;
@@ -293,7 +301,8 @@ int StRtt::readRtt()
     }
 
     // 5. Read memory
-    ret = stlink_usb_layout_api.read_mem(this->_handle, start + RAM_START, 1, size, &this->_memory[start]);
+    // ret = stlink_usb_layout_api.read_mem(this->_handle, start + RAM_START, -1, size, &this->_memory[start]);
+    ret = stlink_usb_layout_api.read_mem(this->_handle, start + RAM_START, -1, ((size / 4) * 4) + 4, &this->_memory[start]);
     if (ret < 0)
     {
         STOP_TS;
@@ -363,7 +372,7 @@ int StRtt::readRttFromBuff(int index, std::vector<uint8_t> *buffer)
 
         // we read up to read value of data - we can use it (WrOff)
         // other way we should do some maths with wrap-around logic
-        int ret = stlink_usb_layout_api.write_mem(this->_handle, addrRdOff, 4, 1, (uint8_t *)&WrOff);
+        int ret = stlink_usb_layout_api.write_mem(this->_handle, addrRdOff, -1, 4, (uint8_t *)&WrOff);
         if (ret < 0)
         {
             return ret;
@@ -374,9 +383,9 @@ int StRtt::readRttFromBuff(int index, std::vector<uint8_t> *buffer)
 }
 
 /**
- * @brief 
- * 
- * @param callback 
+ * @brief
+ *
+ * @param callback
  */
 void StRtt::addChannelHandler(CallbackFunction callback)
 {
@@ -384,12 +393,12 @@ void StRtt::addChannelHandler(CallbackFunction callback)
 }
 
 /**
- * @brief 
- * 
- * @param buffIndex 
- * @param buffer 
- * @return int 
- * 
+ * @brief
+ *
+ * @param buffIndex
+ * @param buffer
+ * @return int
+ *
  * as buffer in uc can be smaller than what we want to write in one go, we
  * write up to uc buffer size
  */
@@ -417,7 +426,7 @@ int StRtt::writeRtt(int buffIndex, std::vector<uint8_t> *buffer)
     {
         this->_wrMemory.resize(pRing->SizeOfBuffer);
 
-        int ret = stlink_usb_layout_api.read_mem(this->_handle, pRing->pBuffer, 1, pRing->SizeOfBuffer, this->_wrMemory.data());
+        int ret = stlink_usb_layout_api.read_mem(this->_handle, pRing->pBuffer, -1, pRing->SizeOfBuffer, this->_wrMemory.data());
         if (ret != ERROR_OK)
         {
             STOP_TS;
@@ -441,7 +450,7 @@ int StRtt::writeRtt(int buffIndex, std::vector<uint8_t> *buffer)
     }
 
     // write shadow memory to uc
-    int ret = stlink_usb_layout_api.write_mem(this->_handle, pRing->pBuffer, 1, pRing->SizeOfBuffer, this->_wrMemory.data());
+    int ret = stlink_usb_layout_api.write_mem(this->_handle, pRing->pBuffer, -1, pRing->SizeOfBuffer, this->_wrMemory.data());
     if (ret != ERROR_OK)
     {
         STOP_TS;
@@ -450,7 +459,7 @@ int StRtt::writeRtt(int buffIndex, std::vector<uint8_t> *buffer)
 
     // update WrOff
     uint32_t addrWrOff = (uint8_t *)&pRing->WrOff - this->_memory.data() + RAM_START;
-    ret = stlink_usb_layout_api.write_mem(this->_handle, addrWrOff, 4, 1, (uint8_t *)&WrOff);
+    ret = stlink_usb_layout_api.write_mem(this->_handle, addrWrOff, -1, 4, (uint8_t *)&WrOff);
     if (ret < 0)
     {
         STOP_TS;

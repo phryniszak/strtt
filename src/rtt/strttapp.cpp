@@ -7,7 +7,7 @@
 #include "log.h"
 #include "inputparser.h"
 
-#define SYSVIEW
+// #define SYSVIEW
 
 #ifdef SYSVIEW
 #include "sysview.h"

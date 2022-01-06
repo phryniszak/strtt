@@ -44,7 +44,7 @@
             "args": [
                 "-ram","32",
                 "-v", "4",
-                "-xtcp", "-t"
+                "-tcp", "-t"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

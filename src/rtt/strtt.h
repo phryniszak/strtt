@@ -110,14 +110,16 @@ private:
     int readRttEx(uint32_t index);
     unsigned _GetAvailWriteSpace(SEGGER_RTT_BUFFER *pRing);
 
+    // special ramStart
+    uint32_t ramStart;
 public:
-    StRtt();
+    StRtt(uint32_t start = RAM_START);
     ~StRtt();
 
     int open(bool use_tcp, uint16_t port_tcp = STLINK_TCP_PORT);
     int close();
 
-    int findRtt(uint32_t ramKbytes, uint32_t ramStart = RAM_START);
+    int findRtt(uint32_t ramKbytes);
     int getRttDesc();
     int getRttBuffSize(uint32_t buffIndex, uint32_t *sizeRead, uint32_t *sizeWrite);
 

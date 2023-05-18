@@ -15,7 +15,7 @@ set(stlink_source_files
 find_path(LIBUSB_INCLUDE_DIR NAMES libusb.h PATH_SUFFIXES "libusb-1.0")
 cmake_print_variables(LIBUSB_INCLUDE_DIR)
 
-find_library(LIBUSB_LIBRARY NAMES usb-1.0)
+find_library(LIBUSB_LIBRARY NAMES libusb-1.0)
 cmake_print_variables(LIBUSB_LIBRARY)
 
 # find_package(libusb-1.0 REQUIRED)

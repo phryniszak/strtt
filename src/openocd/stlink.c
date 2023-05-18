@@ -33,6 +33,14 @@
 
 #include "stlink_errors.h"
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <io.h>
+#else
+#include <arpa/inet.h>
+#include <netinet/tcp.h>
+#endif
+
 #include "helper_bits.h"
 #include "helper_binarybuffer.h"
 #include "helper_time_support.h"
@@ -42,14 +50,6 @@
 #include "libusb_helper.h"
 
 #include "adapter.h"
-
-#ifdef _WIN32
-#include <io.h>
-#include <winsock2.h>
-#else
-#include <arpa/inet.h>
-#include <netinet/tcp.h>
-#endif
 
 // CORTEX DEFINITIONS - BEGIN
 

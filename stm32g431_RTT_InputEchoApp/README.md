@@ -1,0 +1,1 @@
+sample STM32CubeIDE NUCLEO-G431KB application with RTT used to verify STRTT

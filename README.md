@@ -9,7 +9,7 @@ Options:
 
 **-ramsize** ramAmmount where ramAmmount is the range where the program is looking for RTT. 
 
-**-tcp** use connection to st-link gdb server (<https://www.st.com/en/development-tools/st-link-server.html>)
+**-tcp** use tcp connection to st-link gdb server (<https://www.st.com/en/development-tools/st-link-server.html>)
 
 # Windows
 
@@ -27,11 +27,15 @@ alt="RTT and STM32CubeIDE" width="480" height="360" border="10" /></a>
 
 Program is using a refactored driver from the openocd project.
 
-# Example
+# Usage example
 
 ```bash
 
-# If you want to conect your App in Debug running then share your stlink and use tcp connect to
+# in most cases default settings are OK
+
+./strtt
+
+# If you want to connect your App in Debug running then share your stlink and use tcp connect to
 
 ./strtt -ramstart 0x30020000 -tcp
 

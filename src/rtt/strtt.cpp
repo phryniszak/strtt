@@ -36,7 +36,8 @@
  * @brief Construct a new St Rtt:: St Rtt object
  *
  */
-StRtt::StRtt()
+StRtt::StRtt(uint32_t start)
+    :    ramStart(start)
 {
     this->init();
 }
@@ -135,13 +136,13 @@ int StRtt::getIdCode(uint32_t *pIdCode)
  * @param ramStart
  * @return int
  */
-int StRtt::findRtt(uint32_t ramKbytes, uint32_t ramStart)
+int StRtt::findRtt(uint32_t ramKbytes)
 {
     START_TS;
 
     // read the whole RAM ---------------------------------------------------------------
     this->_memory.resize(ramKbytes * 1024);
-    int ret = stlink_usb_layout_api.read_mem(this->_handle, RAM_START, -1, ramKbytes * 0x400, this->_memory.data());
+    int ret = stlink_usb_layout_api.read_mem(this->_handle, ramStart, -1, ramKbytes * 0x400, this->_memory.data());
     if (ret != ERROR_OK)
     {
         STOP_TS;
@@ -156,7 +157,7 @@ int StRtt::findRtt(uint32_t ramKbytes, uint32_t ramStart)
     {
         if (strncmp((char *)&this->_memory[offset], strSeggerRtt, 16) == 0)
         {
-            LOG_DEBUG("RTT addr = 0x%x", RAM_START + offset);
+            LOG_DEBUG("RTT addr = 0x%x", ramStart + offset);
 
             // sizeof(acID[16] + MaxNumUpBuffers +  MaxNumDownBuffers)
             this->_rtt_info.pRttDescription = (SEGGER_RTT_CB *)&this->_memory[offset];
@@ -256,7 +257,7 @@ int StRtt::readRtt()
     uint32_t start = this->_rtt_info.offset;
     unsigned int buffersCnt = this->_rtt_info.pRttDescription->MaxNumUpBuffers + this->_rtt_info.pRttDescription->MaxNumDownBuffers;
     uint32_t size = sizeof(SEGGER_RTT_CB) + sizeof(SEGGER_RTT_BUFFER) * buffersCnt;
-    int ret = stlink_usb_layout_api.read_mem(this->_handle, start + RAM_START, -1, size, &this->_memory[start]);
+    int ret = stlink_usb_layout_api.read_mem(this->_handle, start + ramStart, -1, size, &this->_memory[start]);
     if (ret < 0)
     {
         STOP_TS;
@@ -274,7 +275,7 @@ int StRtt::readRtt()
         SEGGER_RTT_BUFFER bufferDesc = this->_rtt_info.pRttDescription->buffDesc[i];
         if ((bufferDesc.SizeOfBuffer) && (bufferDesc.RdOff != bufferDesc.WrOff))
         {
-            start = bufferDesc.pBuffer - RAM_START;
+            start = bufferDesc.pBuffer - ramStart;
             size = bufferDesc.SizeOfBuffer;
             blocks.push_back(std::make_pair(start, size));
         }
@@ -302,7 +303,7 @@ int StRtt::readRtt()
 
     // 5. Read memory
     // ret = stlink_usb_layout_api.read_mem(this->_handle, start + RAM_START, -1, size, &this->_memory[start]);
-    ret = stlink_usb_layout_api.read_mem(this->_handle, start + RAM_START, -1, ((size / 4) * 4) + 4, &this->_memory[start]);
+    ret = stlink_usb_layout_api.read_mem(this->_handle, start + ramStart, -1, ((size / 4) * 4) + 4, &this->_memory[start]);
     if (ret < 0)
     {
         STOP_TS;
@@ -349,7 +350,7 @@ int StRtt::readRttFromBuff(int index, std::vector<uint8_t> *buffer)
     unsigned int WrOff = pRing->WrOff; // Position of next item to be written by either target.
     unsigned int RdOff = pRing->RdOff; // Position of next item to be read by host. Must be volatile since it may be modified by host.
 
-    size_t memoryIndex = pRing->pBuffer - RAM_START;
+    size_t memoryIndex = pRing->pBuffer - ramStart;
 
     // we start reading from position in memory RdOff until we reach WrOff
     while (RdOff != WrOff)
@@ -368,7 +369,7 @@ int StRtt::readRttFromBuff(int index, std::vector<uint8_t> *buffer)
     if (buffer->size())
     {
         // now save information about amount we read
-        uint32_t addrRdOff = (uint8_t *)&pRing->RdOff - this->_memory.data() + RAM_START;
+        uint32_t addrRdOff = (uint8_t *)&pRing->RdOff - this->_memory.data() + ramStart;
 
         // we read up to read value of data - we can use it (WrOff)
         // other way we should do some maths with wrap-around logic
@@ -458,7 +459,7 @@ int StRtt::writeRtt(int buffIndex, std::vector<uint8_t> *buffer)
     }
 
     // update WrOff
-    uint32_t addrWrOff = (uint8_t *)&pRing->WrOff - this->_memory.data() + RAM_START;
+    uint32_t addrWrOff = (uint8_t *)&pRing->WrOff - this->_memory.data() + ramStart;
     ret = stlink_usb_layout_api.write_mem(this->_handle, addrWrOff, -1, 4, (uint8_t *)&WrOff);
     if (ret < 0)
     {

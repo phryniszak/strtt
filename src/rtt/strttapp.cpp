@@ -75,15 +75,38 @@ int main(int argc, char **argv)
     }
 
     int _ramKB = 16;
-    if (input.cmdOptionExists("-ram"))
+    if (input.cmdOptionExists("-ramsize"))
     {
-        _ramKB = std::stoi(input.getCmdOption("-ram"));
+        std::string opt = input.getCmdOption("-ramsize");
+        if(opt.size() > 1 && opt[0] == '0' && (opt[1] == 'x' || opt[1] == 'X'))
+        {
+            _ramKB = std::stoi(opt, nullptr, 16);
+        }
+        else
+        {
+            _ramKB = std::stoi(opt, nullptr, 0);
+        }
     }
 
     int port = SYSVIEW_COMM_SERVER_PORT;
     if (input.cmdOptionExists("-port"))
     {
         port = std::stoi(input.getCmdOption("-port"));
+    }
+
+    uint32_t _ramStart = RAM_START;
+    if (input.cmdOptionExists("-ramstart"))
+    {
+        // get ram start from options, value maybe hex or dec
+        std::string opt = input.getCmdOption("-ramstart");
+        if(opt.size() > 1 && opt[0] == '0' && (opt[1] == 'x' || opt[1] == 'X'))
+        {
+            _ramStart = std::stoi(opt, nullptr, 16);
+        }
+        else
+        {
+            _ramStart = std::stoi(opt, nullptr, 0);
+        }
     }
 
     bool showCycleTime = false;
@@ -98,7 +121,7 @@ int main(int argc, char **argv)
         useTCP = true;
     }
 
-    StRtt *strtt = new StRtt();
+    StRtt *strtt = new StRtt(_ramStart);
 
     // open stLink
     int res = strtt->open(useTCP);

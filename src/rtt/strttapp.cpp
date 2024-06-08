@@ -18,6 +18,9 @@
 #include <sys/resource.h>
 #include "kbhit.h"
 
+#elif __APPLE__
+#include <sys/resource.h>
+#include "kbhit.h"
 #elif _WIN32
 #include <conio.h>
 #else

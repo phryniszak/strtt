@@ -7,13 +7,14 @@ set(THREADS_PREFER_PTHREAD_FLAG)
 include(FindThreads)
 cmake_print_variables(CMAKE_USE_PTHREADS_INIT)
 
+
 if (SYSVIEW)
 
     # sockpp
     FetchContent_Declare(
-      sockpp_content
-      GIT_REPOSITORY    https://github.com/fpagliughi/sockpp.git
-      GIT_TAG           999ad87296e34d5a8e4edf15d985315d0d84eda7
+        sockpp_content
+        GIT_REPOSITORY    https://github.com/fpagliughi/sockpp.git
+        GIT_TAG           999ad87296e34d5a8e4edf15d985315d0d84eda7
     )
 
     FetchContent_MakeAvailable(sockpp_content)
@@ -49,4 +50,10 @@ else()
         target_link_libraries(strtt stlink Threads::Threads)
     ENDIF()
 
+
 endif()
+
+add_custom_command(
+    TARGET strtt POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:strtt> ${CMAKE_CURRENT_SOURCE_DIR}/../../
+)

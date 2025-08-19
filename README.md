@@ -23,6 +23,10 @@ In debug options "Shared ST-LINK" must be checked.
 <a href="http://www.youtube.com/watch?feature=player_embedded&v=MP6PS8l4fyE" target="_blank"><img src="http://img.youtube.com/vi/MP6PS8l4fyE/0.jpg" 
 alt="RTT and STM32CubeIDE" width="480" height="360" border="10" /></a>
 
+# Using with VSCode and cortex-debug
+
+To share ST-LINK_gdbserver add **-t** option to serverArgs and start strtt with **-tcp**.
+
 # Internals
 
 Program is using a refactored driver from the openocd project.

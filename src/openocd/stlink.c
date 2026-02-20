@@ -1368,7 +1368,7 @@ static int stlink_usb_version(void *handle)
 	}
 
 	/* STLINK-V3 requires a specific command */
-	if (v == 3 && x == 0 && y == 0)
+	if ((v == 3 || v==4) && x == 0 && y == 0)
 	{
 		stlink_usb_init_buffer(handle, h->rx_ep, 16);
 
@@ -1452,6 +1452,7 @@ static int stlink_usb_version(void *handle)
 
 		break;
 	case 3:
+	case 4:
 		/* all STLINK-V3 use api-v3 */
 		h->version.jtag_api = STLINK_JTAG_API_V3;
 
@@ -3812,6 +3813,7 @@ static int stlink_usb_usb_open(void *handle, struct hl_interface_param_s *param)
 		case STLINK_V3S_PID:
 		case STLINK_V3_2VCP_PID:
 		case STLINK_V3E_NO_MSD_PID:
+		case STLINK_V3PWR_PID:
 			h->version.stlink = 3;
 			h->tx_ep = STLINK_V2_1_TX_EP;
 			h->trace_ep = STLINK_V2_1_TRACE_EP;

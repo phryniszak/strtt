@@ -62,8 +62,10 @@ void StRtt::init()
     this->_param.device_desc = "ST-LINK";
     this->_param.transport = hl_transports::HL_TRANSPORT_SWD;
 
-    std::vector<uint16_t> pids{STLINK_V2_PID, STLINK_V2_1_PID, STLINK_V2_1_NO_MSD_PID,
-                               STLINK_V3_USBLOADER_PID, STLINK_V3E_PID, STLINK_V3S_PID, STLINK_V3_2VCP_PID, STLINK_V3E_NO_MSD_PID};
+    std::vector<uint16_t> pids{
+        STLINK_V2_PID,           STLINK_V2_1_PID,       STLINK_V2_1_NO_MSD_PID,
+        STLINK_V3_USBLOADER_PID, STLINK_V3E_PID,        STLINK_V3S_PID,
+        STLINK_V3_2VCP_PID,      STLINK_V3E_NO_MSD_PID, STLINK_V3PWR_PID};
 
     for (std::size_t i = 0; i < HLA_MAX_USB_IDS; ++i)
     {

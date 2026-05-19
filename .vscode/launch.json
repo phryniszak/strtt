@@ -42,14 +42,16 @@
             "name": "(gdb) Linux",
             "type": "cppdbg",
             "request": "launch",
-            // Resolved by CMake Tools:
+            // Resolved by CMake Tools:            
             "program": "${command:cmake.launchTargetPath}",
             "args": [
                 "-ram",
                 "32",
                 "-v",
                 "4",
-                "-rtcp",
+                "-serial",
+                "000C001B4142500720353451"
+                // "003D003B3137510939383538",
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

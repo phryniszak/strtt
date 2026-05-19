@@ -79,7 +79,7 @@ openjtag, osbdm, presto, rlink, st-link, usb_blaster (ublast2), usbprog, vsllink
 @end deffn
 */
 
-static void adapter_set_required_serial(const char *serial)
+void adapter_set_required_serial(const char *serial)
 {
 	free(adapter_config.serial);
 	adapter_config.serial = strdup(serial);

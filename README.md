@@ -13,6 +13,8 @@ Options:
 
 **-ap** select the AP number to use (default 0), some devices have multiple APs, for example STM32H5 and STM32H7 need set AP to 1.
 
+**-serial** ST-LINK serial number to connect to. Useful when multiple ST-LINK probes are connected at the same time.
+
 # Executable
 
 Can be found [here](https://github.com/phryniszak/strtt/releases).
@@ -30,6 +32,10 @@ alt="RTT and STM32CubeIDE" width="480" height="360" border="10" /></a>
 
 To share ST-LINK_gdbserver add **-t** option to serverArgs and start strtt with **-tcp**.
 
+# Known Limitations
+
+> **Cortex-M7 devices:** Due to unresolved cache handling issues inherited from the OpenOCD driver, the program may fail to work correctly with Cortex-M7 based devices (e.g. STM32F7, STM32H7).
+
 # Internals
 
 Program is using a refactored driver from the openocd project.
@@ -45,6 +51,10 @@ Program is using a refactored driver from the openocd project.
 # If you want to connect to RTT while debugging in your IDE share stlink and use tcp
 
 ./strtt -ramstart 0x30020000 -tcp
+
+# If multiple ST-LINK probes are connected, select one by serial number
+
+./strtt -serial 066EFF303435554157105544
 
 ```
 

@@ -1150,6 +1150,7 @@ static int stlink_usb_error_check(void *handle)
 
 	switch (h->databuf[0])
 	{
+	case 0x00: /* ST-LINK V3 returns 0x00 for OK instead of 0x80 */
 	case STLINK_DEBUG_ERR_OK:
 		return ERROR_OK;
 	case STLINK_DEBUG_ERR_FAULT:

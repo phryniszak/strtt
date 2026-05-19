@@ -9,6 +9,10 @@
 
 #include "helper_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** Initialize debug adapter upon startup.  */
 // int adapter_init(struct command_context *cmd_ctx);
 
@@ -50,5 +54,12 @@ bool adapter_usb_location_equal(uint8_t dev_bus, uint8_t *port_path, size_t path
 
 /** Retrieves the serial number set with command 'adapter serial' */
 const char *adapter_get_required_serial(void);
+
+/** Sets the serial number string used to filter adapter selection */
+void adapter_set_required_serial(const char *serial);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* OPENOCD_JTAG_ADAPTER_H */

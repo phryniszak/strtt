@@ -9,6 +9,7 @@
 #include "log.h"
 #include "inputparser.h"
 #include "consoleinput.h"
+#include "adapter.h"
 
 // #define SYSVIEW
 
@@ -56,6 +57,7 @@ static void showArgs(const std::string& progName)
     std::cout << "  -t\t\t ... show cycle time " << std::endl;
     std::cout << "  -tcp\t\t ... use TCP connection " << std::endl;
     std::cout << "  -ap number\t ... accessport number" << std::endl;
+    std::cout << "  -serial string\t ... ST-LINK serial number to connect to" << std::endl;
 }
 
 // INFO:
@@ -81,14 +83,15 @@ int main(int argc, char **argv)
     }
 
     debug_level            = LOG_LVL_SILENT;
-    int      _ramKB        = 16;
-    int      port          = SYSVIEW_COMM_SERVER_PORT;
-    uint32_t _ramStart     = RAM_START;
-    uint8_t  apNum         = 0;
-    bool     useTCP        = false;
-    bool     showCycleTime = false;
+    int         _ramKB        = 16;
+    int         port          = SYSVIEW_COMM_SERVER_PORT;
+    uint32_t    _ramStart     = RAM_START;
+    uint8_t     apNum         = 0;
+    bool        useTCP        = false;
+    bool        showCycleTime = false;
+    std::string serial;
 
-    auto handleOptions = [&argc, argv, &_ramKB, &port, &_ramStart, &apNum, &useTCP, &showCycleTime]() {
+    auto handleOptions = [&argc, argv, &_ramKB, &port, &_ramStart, &apNum, &useTCP, &showCycleTime, &serial]() {
         InputParser input(argc, argv);
 
         if( input.cmdOptionExists("-v") ) {
@@ -131,6 +134,10 @@ int main(int argc, char **argv)
         if( input.cmdOptionExists("-ap") ) {
             apNum = std::stoi(input.getCmdOption("-ap"));
         }
+
+        if( input.cmdOptionExists("-serial") ) {
+            serial = input.getCmdOption("-serial");
+        }
     };
 
     try {
@@ -140,6 +147,9 @@ int main(int argc, char **argv)
         showArgs(argv[0]);
         return EXIT_FAILURE;
     }
+
+    if (!serial.empty())
+        adapter_set_required_serial(serial.c_str());
 
     auto strtt = std::make_unique<StRtt>(_ramStart, apNum);
 

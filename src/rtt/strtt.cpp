@@ -348,9 +348,9 @@ int StRtt::readRtt()
         SEGGER_RTT_BUFFER bufferDesc = this->_rtt_info.pRttDescription->buffDesc[i];
         if ((bufferDesc.SizeOfBuffer) && (bufferDesc.RdOff != bufferDesc.WrOff))
         {
-            if (!this->isBufferAddressValid(bufferDesc))
-                continue; // already warned about this channel above
-
+            // out-of-range buffers are handled (and warned about) in the
+            // enumeration loop above; readRttFromBuff() guards again and
+            // returns 0 for them, so no extra check is needed here.
             std::vector<uint8_t> buffer;
             buffer.reserve(bufferDesc.SizeOfBuffer);
             int amount = this->readRttFromBuff(i, &buffer);

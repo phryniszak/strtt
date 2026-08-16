@@ -124,6 +124,7 @@ private:
     void init();
     int readRttEx(uint32_t index);
     unsigned _GetAvailWriteSpace(SEGGER_RTT_BUFFER *pRing);
+    bool isBufferAddressValid(const SEGGER_RTT_BUFFER &bufferDesc) const;
 
     // special ramStart
     uint32_t ramStart;

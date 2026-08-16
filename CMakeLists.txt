@@ -11,3 +11,7 @@ add_subdirectory(src/openocd)
 
 # build sample app
 add_subdirectory(src/rtt)
+
+# tests
+enable_testing()
+add_subdirectory(test/cpp)

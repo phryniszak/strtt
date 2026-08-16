@@ -249,6 +249,25 @@ int StRtt::getRttBuffSize(uint32_t index, uint32_t *sizeRead, uint32_t *sizeWrit
 }
 
 /**
+ * @brief Checks that a buffer descriptor's address actually falls inside the
+ * RAM window we downloaded into this->_memory (starting at ramStart). The
+ * target's linker can place an RTT buffer below the -ramstart value the user
+ * supplied (see issue #6); subtracting ramStart from such a pBuffer
+ * underflows and produces a wild index into this->_memory.
+ *
+ * @param bufferDesc
+ * @return true if bufferDesc.pBuffer..+SizeOfBuffer is safe to index into this->_memory
+ */
+bool StRtt::isBufferAddressValid(const SEGGER_RTT_BUFFER &bufferDesc) const
+{
+    if (bufferDesc.pBuffer < ramStart)
+        return false;
+
+    uint64_t offset = (uint64_t)bufferDesc.pBuffer - ramStart;
+    return offset + bufferDesc.SizeOfBuffer <= this->_memory.size();
+}
+
+/**
  * @brief
  *
  * @return int
@@ -279,6 +298,13 @@ int StRtt::readRtt()
         SEGGER_RTT_BUFFER bufferDesc = this->_rtt_info.pRttDescription->buffDesc[i];
         if ((bufferDesc.SizeOfBuffer) && (bufferDesc.RdOff != bufferDesc.WrOff))
         {
+            if (!this->isBufferAddressValid(bufferDesc))
+            {
+                LOG_WARNING("Channel %d buffer address 0x%x is outside of the tracked RAM window [0x%x, 0x%x), skipping",
+                            (int)i, bufferDesc.pBuffer, ramStart, ramStart + (uint32_t)this->_memory.size());
+                continue;
+            }
+
             start = bufferDesc.pBuffer - ramStart;
             size = bufferDesc.SizeOfBuffer;
             blocks.push_back(std::make_pair(start, size));
@@ -322,6 +348,9 @@ int StRtt::readRtt()
         SEGGER_RTT_BUFFER bufferDesc = this->_rtt_info.pRttDescription->buffDesc[i];
         if ((bufferDesc.SizeOfBuffer) && (bufferDesc.RdOff != bufferDesc.WrOff))
         {
+            // out-of-range buffers are handled (and warned about) in the
+            // enumeration loop above; readRttFromBuff() guards again and
+            // returns 0 for them, so no extra check is needed here.
             std::vector<uint8_t> buffer;
             buffer.reserve(bufferDesc.SizeOfBuffer);
             int amount = this->readRttFromBuff(i, &buffer);
@@ -353,6 +382,9 @@ int StRtt::readRttFromBuff(int index, std::vector<uint8_t> *buffer)
     SEGGER_RTT_BUFFER *pRing = &this->_rtt_info.pRttDescription->buffDesc[index];
     unsigned int WrOff = pRing->WrOff; // Position of next item to be written by either target.
     unsigned int RdOff = pRing->RdOff; // Position of next item to be read by host. Must be volatile since it may be modified by host.
+
+    if (!this->isBufferAddressValid(*pRing))
+        return 0;
 
     size_t memoryIndex = pRing->pBuffer - ramStart;
 

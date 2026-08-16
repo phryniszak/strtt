@@ -17,12 +17,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-2022]
         include:
           - os: ubuntu-latest
             artifact_name: strtt
             artifact_path: build/src/rtt/strtt
-          - os: windows-latest
+          - os: windows-2022
             artifact_name: strtt.exe
             artifact_path: build/src/rtt/Release/strtt.exe
 

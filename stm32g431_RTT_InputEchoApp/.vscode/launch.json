@@ -1,0 +1,92 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Build & Debug Microcontroller - ST-Link",
+            "cwd": "${workspaceFolder}",
+            "type": "cortex-debug",
+            "executable": "${command:cmake.launchTargetPath}",
+            // Let CMake extension decide executable: "${command:cmake.launchTargetPath}"
+            // Or fixed file path: "${workspaceFolder}/path/to/filename.elf"
+            "request": "launch",
+            "servertype": "stlink",
+            "device": "STM32G431KBTx", //MCU used
+            "interface": "swd",
+            "serialNumber": "${config:stlink_sn}", //Set ST-Link ID if you use multiple at the same time
+            "runToEntryPoint": "main",
+            "svdFile": "${config:cubeCLT_path}/STMicroelectronics_CMSIS_SVD/STM32G431.svd",
+            "serverpath": "${config:cubeCLT_path}/STLink-gdb-server/bin/ST-LINK_gdbserver",
+            "stm32cubeprogrammer": "${config:cubeCLT_path}/STM32CubeProgrammer/bin",
+            "stlinkPath": "${config:cubeCLT_path}/STLink-gdb-server/bin/ST-LINK_gdbserver",
+            "armToolchainPath": "${config:cubeCLT_path}/GNU-tools-for-STM32/bin",
+            "gdbPath": "${config:cubeCLT_path}/GNU-tools-for-STM32/bin/arm-none-eabi-gdb",
+            "serverArgs": [
+                "-m",
+                "0",
+                "-t",
+            ],
+            //"preLaunchTask": "Build + Flash"
+            /* If you use external loader, add additional arguments */
+            //"serverArgs": ["--extload", "path/to/ext/loader.stldr"],
+            "liveWatch": {
+                "enabled": true,
+                "samplesPerSecond": 4
+            }
+        },
+        {
+            "name": "Attach to Microcontroller - ST-Link",
+            "cwd": "${workspaceFolder}",
+            "type": "cortex-debug",
+            "executable": "${command:cmake.launchTargetPath}",
+            // Let CMake extension decide executable: "${command:cmake.launchTargetPath}"
+            // Or fixed file path: "${workspaceFolder}/path/to/filename.elf"
+            "request": "attach",
+            "servertype": "stlink",
+            "device": "STM32G431KBTx", //MCU used
+            "interface": "swd",
+            "serialNumber": "", //Set ST-Link ID if you use multiple at the same time
+            "runToEntryPoint": "main",
+            "svdFile": "${config:cubeCLT_path}/STMicroelectronics_CMSIS_SVD/STM32G431.svd",
+            "v1": false, //Change it depending on ST Link version
+            "serverpath": "${config:cubeCLT_path}/STLink-gdb-server/bin/ST-LINK_gdbserver",
+            "stm32cubeprogrammer": "${config:cubeCLT_path}/STM32CubeProgrammer/bin",
+            "stlinkPath": "${config:cubeCLT_path}/STLink-gdb-server/bin/ST-LINK_gdbserver",
+            "armToolchainPath": "${config:cubeCLT_path}/GNU-tools-for-STM32/bin",
+            "gdbPath": "${config:cubeCLT_path}/GNU-tools-for-STM32/bin/arm-none-eabi-gdb",
+            "serverArgs": [
+                "-m",
+                "0",
+                "-t",
+            ],
+            /* If you use external loader, add additional arguments */
+            //"serverArgs": ["--extload", "path/to/ext/loader.stldr"],
+        },
+        {
+            "name": "cppdgb",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "program": "${command:cmake.launchTargetPath}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "${config:cubeCLT_path}/GNU-tools-for-STM32/bin/arm-none-eabi-gdb",
+            "miDebuggerServerAddress": "localhost:3333",
+            "debugServerPath": "${config:cubeCLT_path}/STLink-gdb-server/bin/ST-LINK_gdbserver",
+            "debugServerArgs": "--stm32cubeprogrammer-path ${config:cubeCLT_path}/STM32CubeProgrammer/bin/ --swd --port-number 3333",
+            "serverStarted": "Waiting for debugger connection\\.\\.\\.",
+            "stopAtConnect": true,
+            "postRemoteConnectCommands": [
+                {
+                    "text": "load ${command:cmake.launchTargetPath}"
+                }
+            ],
+            "logging": {
+                "engineLogging": true
+            },
+            // "preLaunchTask": "Build + Flash",
+            "svdPath": "${config:cubeCLT_path}/STMicroelectronics_CMSIS_SVD/STM32G431.svd"
+        },
+    ]
+}

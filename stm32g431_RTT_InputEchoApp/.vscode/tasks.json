@@ -1,0 +1,87 @@
+{
+    "version": "2.0.0",
+    "windows": {
+        "options": {
+            "shell": {
+                "executable": "cmd.exe",
+                "args": [
+                    "/d",
+                    "/c"
+                ]
+            }
+        }
+    },
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "CubeProg: Flash",
+            "command": "STM32_Programmer_CLI",
+            "args": [
+                "--connect",
+                "port=swd",
+                "sn=${config:stlink_sn}",
+                "--download",
+                "${command:cmake.launchTargetPath}",
+                // Let CMake extension decide executable: "${command:cmake.launchTargetPath}",
+                "-hardRst", // Hardware reset - if rst pin is connected
+                "-rst", // Software reset (backup)
+                "--start" // Start execution
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        // {
+        //     "label": "Build + Flash",
+        //     "dependsOrder": "sequence",
+        //     "dependsOn": [
+        //         "CMake: clean rebuild",
+        //         "CubeProg: Flash",
+        //     ]
+        // },
+        {
+            "type": "cmake",
+            "label": "CMake: clean rebuild",
+            "command": "cleanRebuild",
+            "targets": [
+                "all"
+            ],
+            "preset": "${command:cmake.activeBuildPresetName}",
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "CMake template clean rebuild task"
+        },
+        {
+            "type": "shell",
+            "label": "CubeProg: List all available communication interfaces",
+            "command": "STM32_Programmer_CLI",
+            "args": [
+                "--list"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "zip",
+            "type": "shell",
+            "command": "zip",
+            "args": [
+                "-r",
+                "${workspaceFolderBasename}.zip",
+                "${workspaceFolder}",
+                "-x",
+                "*/build/*"
+            ],
+            "problemMatcher": []
+        },
+        // {
+        //     "label": "Test st.gdbserver",
+        //     "type": "shell",
+        //     "command": "echo ${command:vscode-embedded.st.gdbserver}",
+        //     "problemMatcher": []
+        // }
+    ]
+}

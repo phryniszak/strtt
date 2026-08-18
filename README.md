@@ -64,6 +64,13 @@ One experimental option is to use this program with Segger SystemView using tcp 
 
 `cmake -DSYSVIEW=1 ..`
 
+# MCP Server
+
+An [MCP](https://modelcontextprotocol.io) server that lets an AI assistant drive `strtt` directly —
+start a capture session, tail live RTT output, send text to the device, and stop it — lives in
+[mcp/](mcp/). See [mcp/README.md](mcp/README.md) for setup and usage, including a worked example
+against the `stm32g431_RTT_InputEchoApp` sample firmware in this repo.
+
 # RTT in browser
 You can also try to use web browser version:
 

@@ -2,6 +2,6 @@
 build/
 ipch/
 lib/
-info.txt
-strtt*
+info.
 .claude/
+.mcp.json

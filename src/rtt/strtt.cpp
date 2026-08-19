@@ -457,36 +457,57 @@ int StRtt::writeRtt(int buffIndex, std::vector<uint8_t> *buffer)
         return 0;
     }
 
-    // read memory from uc to shadow memory
-    // we read it once, because its read only memory and it is not modified by uc
+    // Write only the numWritten bytes we're actually adding, directly at
+    // their target offset(s) -- never the rest of the ring. In principle
+    // this is the more correct design (the target's own CPU can read this
+    // buffer over SWD at literally the same instant we're writing it, so
+    // touching bytes we don't need to is a real race window), but on real
+    // ST-LINK V3 hardware small/unaligned AP memory writes reliably wedge
+    // the USB bulk transfer into a permanent LIBUSB_ERROR_TIMEOUT loop that
+    // never recovers on its own -- only a full close/reopen of the probe
+    // clears it. That failure signature (communication silently stops,
+    // only a restart fixes it) is suspiciously close to the original bug
+    // report, so this is a real and relevant finding, but implementing the
+    // fix this way made things categorically worse, not better: verified
+    // live, this reproduced a stall in 83 of 90 rapid-write bursts (see
+    // git history for the attempt). Reverted to always writing the full,
+    // base-aligned SizeOfBuffer via a persistent shadow copy (_wrMemory),
+    // which is what's actually proven reliable on this hardware.
+    //
+    // We still only fetch that shadow snapshot once per session (the
+    // target never writes down-buffer content, only reads it, so our own
+    // copy stays valid) -- but critically, only commit it to _wrMemory
+    // once the read has actually succeeded. Resizing _wrMemory before
+    // that would make it non-empty regardless of the outcome, so a single
+    // transient USB read failure would permanently skip this snapshot on
+    // every future call -- silently writing a zero-filled shadow buffer
+    // over real (and possibly still-unread) device memory from then on,
+    // until the process is restarted. See test_write_stall_after_transient_error.cpp.
     if (!_wrMemory.size())
     {
-        this->_wrMemory.resize(pRing->SizeOfBuffer);
+        std::vector<uint8_t> snapshot(pRing->SizeOfBuffer);
 
-        int ret = stlink_usb_layout_api.read_mem(this->_handle, pRing->pBuffer, -1, pRing->SizeOfBuffer, this->_wrMemory.data());
+        int ret = stlink_usb_layout_api.read_mem(this->_handle, pRing->pBuffer, -1, pRing->SizeOfBuffer, snapshot.data());
         if (ret != ERROR_OK)
         {
             STOP_TS;
             return ret;
         }
+
+        this->_wrMemory = std::move(snapshot);
     }
 
-    // write buffer to shadow memory, which next we write to uc
     for (size_t i = 0; i < numWritten; i++)
     {
         this->_wrMemory[WrOff++] = buffer->at(0);
-
-        // pop front
         buffer->erase(buffer->begin());
 
-        // Handle wrap-around of buffer
         if (WrOff >= pRing->SizeOfBuffer)
         {
             WrOff = 0;
         }
     }
 
-    // write shadow memory to uc
     int ret = stlink_usb_layout_api.write_mem(this->_handle, pRing->pBuffer, -1, pRing->SizeOfBuffer, this->_wrMemory.data());
     if (ret != ERROR_OK)
     {

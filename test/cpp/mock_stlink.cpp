@@ -10,6 +10,10 @@
 
 std::vector<uint8_t> g_fakeMemory;
 uint32_t g_fakeMemoryBase = 0;
+uint32_t g_failReadMemAtAddr = 0;
+int g_failReadMemAtAddrRemaining = 0;
+uint32_t g_failWriteMemAtAddr = 0;
+int g_failWriteMemAtAddrRemaining = 0;
 
 static int mock_open(struct hl_interface_param_s *, void **handle)
 {
@@ -30,11 +34,35 @@ static int mock_close(void *)
 // would when writing received USB data into the same bad pointer.
 static int mock_read_mem(void *, uint32_t addr, uint32_t /*size*/, uint32_t count, uint8_t *buffer)
 {
+    if (g_failReadMemAtAddr != 0 && addr == g_failReadMemAtAddr && g_failReadMemAtAddrRemaining > 0)
+    {
+        --g_failReadMemAtAddrRemaining;
+        return ERROR_FAIL;
+    }
+
     uint32_t offset = addr - g_fakeMemoryBase;
     if (offset < g_fakeMemory.size() && offset + count <= g_fakeMemory.size())
         memcpy(buffer, g_fakeMemory.data() + offset, count);
     else
         memset(buffer, 0, count);
+
+    return ERROR_OK;
+}
+
+// Mirrors the real probe: copies `count` bytes from the caller-supplied
+// buffer into the simulated target RAM, so tests can inspect what strtt
+// actually wrote to the "device" afterward.
+static int mock_write_mem(void *, uint32_t addr, uint32_t /*size*/, uint32_t count, const uint8_t *buffer)
+{
+    if (g_failWriteMemAtAddr != 0 && addr == g_failWriteMemAtAddr && g_failWriteMemAtAddrRemaining > 0)
+    {
+        --g_failWriteMemAtAddrRemaining;
+        return ERROR_FAIL;
+    }
+
+    uint32_t offset = addr - g_fakeMemoryBase;
+    if (offset < g_fakeMemory.size() && offset + count <= g_fakeMemory.size())
+        memcpy(g_fakeMemory.data() + offset, buffer, count);
 
     return ERROR_OK;
 }
@@ -56,6 +84,7 @@ struct MockRegistration
         stlink_usb_layout_api.open = mock_open;
         stlink_usb_layout_api.close = mock_close;
         stlink_usb_layout_api.read_mem = mock_read_mem;
+        stlink_usb_layout_api.write_mem = mock_write_mem;
         stlink_usb_layout_api.idcode = mock_idcode;
     }
 } registration;
